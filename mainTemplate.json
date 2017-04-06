@@ -9,15 +9,7 @@
       "metadata": {
         "description": "The number of Web Application Firewalls that will be deployed in front of your application."
       }
-    },
-    "numberOfInstances": {
-      "type": "int",
-      "defaultValue": 1,
-      "allowedValues": [ 1, 2 ],
-      "metadata": {
-        "description": "The number of Web Application Firewalls that will be deployed in front of your application."
-      }
-    },
+    }
     "instanceType": {
       "allowedValues": [
         "Standard_A4",
@@ -109,16 +101,14 @@
     },
     "numCopies": {
       "type": "int",
-      "defaultValue": 2,
+      "defaultValue": 10,
       "allowedValues": [
-        1,
-        2,
-        3,
-        4,
-        5
+        10,
+        25,
+        50
       ],
       "maxValue": 50,
-      "minValue": 1,
+      "minValue": 10,
       "metadata": {
         "description": "The number of VS/WAF copies to deploy for purposes of load testing, Selection limited to 1, 2, 10, 25, or 50 instances."
       }
@@ -144,7 +134,7 @@
     "apiVersionTemplate": "2015-01-01",
     "pubIpTemplateLink": "[concat(variables('baseUrl'), '/publicips.json')]",
     "loadBalTemplateLink": "[concat(variables('baseUrl'), '/loadBals.json')]",
-    "bigipTemplateLink": "[concat(variables('baseUrl'), '/bigip-',parameters('numberOfInstances'),parameters('byolOrHourly'), parameters('numCopies'), 'vip.json')]",
+    "bigipTemplateLink": "[concat(variables('baseUrl'), '/bigip-', parameters('byolOrHourly'), parameters('numCopies'), 'vip.json')]",
     "virtualNetworkName": "VNet",
     "vnetAddressPrefix": "10.10.0.0/16",
     "mgmtSubnetName": "mgmt",
@@ -473,7 +463,6 @@
           "apiVersionNetwork": { "value": "[variables('apiVersionNetwork')]" },
           "apiVersionStorage": { "value": "[variables('apiVersionStorage')]" },
           "numCopies": { "value": "[parameters('numCopies')]" },
-          "numberOfInstances": { "value": "[parameters('numberOfInstances')]" },
           "location": { "value": "[variables('location')]" },
           "publicIPName": { "value": "[parameters('publicIPName')]" }
         }
@@ -509,7 +498,6 @@
           "apiVersionCompute": { "value": "[variables('apiVersionCompute')]" },
           "apiVersionNetwork": { "value": "[variables('apiVersionNetwork')]" },
           "apiVersionStorage": { "value": "[variables('apiVersionStorage')]" },
-          "numberOfInstances": { "value": "[parameters('numberOfInstances')]" },
           "numCopies": { "value": "[parameters('numCopies')]" },
           "baseUrl": { "value": "[variables('baseUrl')]" },
           "location": { "value": "[variables('location')]" },
