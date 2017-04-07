@@ -263,7 +263,7 @@
             "properties": {
               "privateIPAllocationMethod": "static",
               "privateIPAddress": "[concat(parameters('extIpAddress'),'16')]",
-              "primary": true,
+              "primary": false,
               "subnet": {
                 "id": "[parameters('extSubnetRef')]"
               },
