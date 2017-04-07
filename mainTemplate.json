@@ -9,8 +9,9 @@
       "metadata": {
         "description": "The number of Web Application Firewalls that will be deployed in front of your application."
       }
-    }
+    },
     "instanceType": {
+      "type": "string",
       "allowedValues": [
         "Standard_A4",
         "Standard_A5",
@@ -38,8 +39,7 @@
       "defaultValue": "Standard_D3_v2",
       "metadata": {
         "description": "Size of the VM"
-      },
-      "type": "string"
+      }
     },
     "imageName": {
       "allowedValues": [
@@ -124,7 +124,7 @@
   "variables": {
     "location": "[resourceGroup().location]",
     "bigIpVersion": "latest",
-    "baseUrl": "https://raw.githubusercontent.com/gregcoward/multinic-multivip/master",
+    "baseUrl": "https://raw.githubusercontent.com/gregcoward/SingleInstance-MassiveVIPs/master",
     "newStorageAccountName": "[concat(uniquestring(concat(resourceGroup().id, 'st')), 'st')]",
     "diagStorageAccountName": "[concat(uniquestring(concat(resourceGroup().id, 'diag')), 'diag')]",
     "f5NamePrefix": "[concat(parameters('publicIpName'),'-bigip')]",
