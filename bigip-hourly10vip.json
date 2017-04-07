@@ -80,9 +80,6 @@
     "numCopies": {
       "type": "int"
     },
-    "loadBalancerName": {
-      "type": "string"
-    },
     "imageName": {
       "type": "string"
     },
