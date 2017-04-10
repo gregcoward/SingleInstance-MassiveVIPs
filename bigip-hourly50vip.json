@@ -333,7 +333,7 @@
             "properties": {
               "privateIPAllocationMethod": "static",
               "privateIPAddress": "[concat(parameters('extIpAddress'),'21')]",
-              "primary": true,
+              "primary": false,
               "subnet": {
                 "id": "[parameters('extSubnetRef')]"
               },
@@ -473,7 +473,7 @@
             "properties": {
               "privateIPAllocationMethod": "static",
               "privateIPAddress": "[concat(parameters('extIpAddress'),'31')]",
-              "primary": true,
+              "primary": false,
               "subnet": {
                 "id": "[parameters('extSubnetRef')]"
               },
@@ -613,7 +613,7 @@
             "properties": {
               "privateIPAllocationMethod": "static",
               "privateIPAddress": "[concat(parameters('extIpAddress'),'41')]",
-              "primary": true,
+              "primary":false,
               "subnet": {
                 "id": "[parameters('extSubnetRef')]"
               },
@@ -753,7 +753,7 @@
             "properties": {
               "privateIPAllocationMethod": "static",
               "privateIPAddress": "[concat(parameters('extIpAddress'),'51')]",
-              "primary": true,
+              "primary": false,
               "subnet": {
                 "id": "[parameters('extSubnetRef')]"
               },
