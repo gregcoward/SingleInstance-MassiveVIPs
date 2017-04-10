@@ -1,0 +1,996 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "apiVersionCompute": {
+      "type": "string",
+      "metadata": {
+        "description": "The compute api version"
+      }
+    },
+    "apiVersionNetwork": {
+      "type": "string",
+      "metadata": {
+        "description": "The network api version"
+      }
+    },
+    "apiVersionStorage": {
+      "type": "string",
+      "metadata": {
+        "description": "The storage api version"
+      }
+    },
+    "f5NamePrefix": {
+      "type": "string"
+    },
+    "baseUrl": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "instanceType": {
+      "type": "string"
+    },
+    "licenseKey1": {
+      "type": "string",
+      "metadata": {
+        "description": "Only required if BYOL selected."
+      }
+    },
+    "licenseKey2": {
+      "type": "string",
+      "metadata": {
+        "description": "Only required if BYOL and 2 instances selected."
+      }
+    },
+    "adminUsername": {
+      "type": "string"
+    },
+    "adminPassword": {
+      "type": "securestring"
+    },
+    "publicIpName": {
+      "type": "string"
+    },
+    "mgmtIpAddress": {
+      "type": "string"
+    },
+    "mgmtSubnetRef": {
+      "type": "string"
+    },
+    "intIpAddress": {
+      "type": "string"
+    },
+    "intSubnetRef": {
+      "type": "string"
+    },
+    "extIpAddress": {
+      "type": "string"
+    },
+    "extSubnetRef": {
+      "type": "string"
+    },
+    "nicNamePrefix": {
+      "type": "string"
+    },
+    "nsgID": {
+      "type": "string"
+    },
+    "numCopies": {
+      "type": "int"
+    },
+    "imageName": {
+      "type": "string"
+    },
+    "licensedBandwidth": {
+      "type": "string"
+    },
+    "virtualNetworkName": {
+      "type": "string"
+    },
+    "availabilitySetName": {
+      "type": "string"
+    },
+    "newStorageAccountName": {
+      "type": "string"
+    },
+    "diagStorageAccountName": {
+      "type": "string"
+    }
+  },
+  "variables": {
+    "runScripts": "runScripts.js",
+    "runScriptsUrl": "[concat(parameters('baseUrl'), '/', variables('runScripts'))]",
+    "singleQuote": "'",
+    "f5CloudLibsTag": "v.2.3.0",
+    "verifyHash": "[concat(variables('singleQuote'), 'cli script /Common/verifyHash {\nproc script::run {} {\n        if {[catch {\n            set hashes(f5-cloud-libs.tar.gz) 489d460d2e5fcd401ce12f19b1d753a6bee30483cd0bf2b7548b7f8fe3caf5b727af96f013733cbd08b0c109e0cf535a29288d473b84cc834369204d5be5edc9\n            set hashes(f5-cloud-libs-aws.tar.gz) 0b602d069a6647e8268c7afc5201259058c4df545cdee5212bf1f6c2d24b11421201282c11e047b1df9b144a012312de45a07fcf28bd0d8cd3d3a86698774925\n            set hashes(f5-cloud-libs-azure.tar.gz) 16d2ce2086883ed5b47a3ba4e79541fd1a4bb64513222cf3a459297c2474d0bfc71a161ba2b8571707e1a6b273badaaf2c847993d0e60a4b52cd8c62cb03aba6\n            set hashes(asm-policy-linux.tar.gz) 63b5c2a51ca09c43bd89af3773bbab87c71a6e7f6ad9410b229b4e0a1c483d46f1a9fff39d9944041b02ee9260724027414de592e99f4c2475415323e18a72e0\n            set hashes(f5.http.v1.2.0rc4.tmpl) 47c19a83ebfc7bd1e9e9c35f3424945ef8694aa437eedd17b6a387788d4db1396fefe445199b497064d76967b0d50238154190ca0bd73941298fc257df4dc034\n            set hashes(f5.http.v1.2.0rc6.tmpl) 811b14bffaab5ed0365f0106bb5ce5e4ec22385655ea3ac04de2a39bd9944f51e3714619dae7ca43662c956b5212228858f0592672a2579d4a87769186e2cbfe\n            set hashes(f5.http.v1.2.0rc7.tmpl) 21f413342e9a7a281a0f0e1301e745aa86af21a697d2e6fdc21dd279734936631e92f34bf1c2d2504c201f56ccd75c5c13baa2fe7653213689ec3c9e27dff77d\n            set hashes(f5.aws_advanced_ha.v1.3.0rc1.tmpl) 9e55149c010c1d395abdae3c3d2cb83ec13d31ed39424695e88680cf3ed5a013d626b326711d3d40ef2df46b72d414b4cb8e4f445ea0738dcbd25c4c843ac39d\n            set hashes(asm-policy.tar.gz) 2d39ec60d006d05d8a1567a1d8aae722419e8b062ad77d6d9a31652971e5e67bc4043d81671ba2a8b12dd229ea46d205144f75374ed4cae58cefa8f9ab6533e6\n            set hashes(deploy_waf.sh) 4db3176b45913a5e7ccf42ab9c7ac9d7de115cdbd030b9e735946f92456b6eb433087ed0e98ac4981c76d475cd38f4de49cd98c063e13d50328a270e5b3daa4a\n            set hashes(f5.policy_creator.tmpl) 54d265e0a573d3ae99864adf4e054b293644e48a54de1e19e8a6826aa32ab03bd04c7255fd9c980c3673e9cd326b0ced513665a91367add1866875e5ef3c4e3a\n\n            set file_path [lindex $tmsh::argv 1]\n            set file_name [file tail $file_path]\n\n            if {![info exists hashes($file_name)]} {\n                tmsh::log err \"No hash found for $file_name\"\n                exit 1\n            }\n\n            set expected_hash $hashes($file_name)\n            set computed_hash [lindex [exec /usr/bin/openssl dgst -r -sha512 $file_path] 0]\n            if { $expected_hash eq $computed_hash } {\n                exit 0\n            }\n            tmsh::log err \"Hash does not match for $file_path\"\n            exit 1\n        }]} {\n            tmsh::log err {Unexpected error in verifyHash}\n            exit 1\n        }\n    }\n    script-signature prKQi8FeX98kCcFaMwIdwgYADdAjZo6iNTnnckguwe5IVysTEVe4vR2HPLJlDzU25dU17sQvDNIX52K0VYN4LEkAuSMeMTmr2LnlRWcGEJ4YUo9lKMdKzMzJaznlScwaR4P5mEdJC0ygq8jinOIlkauLbqmAElNtxWpb+XLnR2R83vMl/y9/LGxCxrvqE3ZuXvyuKqpAlhS+AN5ZQBDFvlTgQi52KJWpw+3i7oalz5dsjbAs2gRARtZ57Pa8OD5Oz54Q1UDxuzPVNH+CY4vt93JKmduMBsT3F41RUFDmRzosjmBY/Ic9O7oLVlKwOusDeqqqlfOM5CxcVMXwB3oxxQ==\n    signing-key /Common/f5-irule\n}', variables('singleQuote'))]",
+    "installCloudLibs": "[concat(variables('singleQuote'), '#!/bin/bash\necho about to execute\nchecks=0\nwhile [ $checks -lt 120 ]; do echo checking mcpd\n/usr/bin/tmsh -a show sys mcp-state field-fmt | grep -q running\nif [ $? == 0 ]; then\necho mcpd ready\nbreak\nfi\necho mcpd not ready yet\nlet checks=checks+1\nsleep 1\ndone\necho loading verifyHash script\n/usr/bin/tmsh load sys config merge file /config/verifyHash\nif [ $? != 0 ]; then\necho cannot validate signature of /config/verifyHash\nexit\nfi\necho loaded verifyHash\necho verifying f5-cloud-libs.tar.gz\n/usr/bin/tmsh run cli script verifyHash /config/cloud/f5-cloud-libs.tar.gz\nif [ $? != 0 ]; then\necho f5-cloud-libs.tar.gz is not valid\nexit\nfi\necho verified f5-cloud-libs.tar.gz\necho expanding f5-cloud-libs.tar.gz\ntar xvfz /config/cloud/f5-cloud-libs.tar.gz -C /config/cloud\ntouch /config/cloud/cloudLibsReady', variables('singleQuote'))]",
+    "f5CloudLibsTagUrl": "[concat(parameters('baseUrl'),'/f5-cloud-libs/', variables('f5CloudLibsTag'), '/dist/f5-cloud-libs.tar.gz')]",
+    "defaultGw": "[concat(parameters('extIpAddress'),'1')]",
+    "imageName": "[concat('f5-bigip-virtual-edition-', toLower(parameters('imageName')),'-best-hourly')]",
+    "imageNameToLower": "[toLower(parameters('imageName'))]",
+    "skuToUse": "[concat('f5-bigip-virtual-edition-', parameters('licensedBandwidth'), '-', variables('imageNameToLower'),'-hourly')]"
+  },
+  "resources": [
+    {
+      "apiVersion": "[parameters('apiVersionNetwork')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('nicNamePrefix'),'-mgmt')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "displayName": "NetworkInterface"
+      },
+      "dependsOn": [
+      ],
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[parameters('nsgID')]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(parameters('mgmtIpAddress'),'4')]",
+              "subnet": {
+                "id": "[parameters('mgmtSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-mgmt'))]"
+              }
+
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[parameters('apiVersionNetwork')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('nicNamePrefix'),'-int')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "displayName": "NetworkInterface"
+      },
+      "dependsOn": [
+      ],
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[parameters('nsgID')]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(parameters('intIpAddress'),'4')]",
+              "subnet": {
+                "id": "[parameters('intSubnetRef')]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[parameters('apiVersionNetwork')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat(parameters('nicNamePrefix'),'-data')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "displayName": "NetworkInterface"
+      },
+      "dependsOn": [
+      ],
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[parameters('nsgID')]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'11')]",
+              "primary": true,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-1'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig2",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'12')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-2'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig3",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'13')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-3'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig4",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'14')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-4'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig5",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'15')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-5'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig6",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'16')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-6'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig7",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'17')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-7'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig8",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'18')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-8'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig9",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'19')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-9'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig10",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'20')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-10'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig11",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'21')]",
+              "primary": true,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-11'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig12",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'22')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-12'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig13",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'23')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-13'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig14",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'24')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-14'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig15",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'25')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-15'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig16",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'26')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-16'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig17",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'27')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-17'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig18",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'28')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-18'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig19",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'29')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-19'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig20",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'30')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-20'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig21",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'31')]",
+              "primary": true,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-21'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig22",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'32')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-22'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig23",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'33')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-23'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig24",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'34')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-24'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig25",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'35')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-25'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig26",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'36')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-26'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig27",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'37')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-27'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig28",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'38')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-28'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig29",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'39')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-29'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig30",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'40')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-30'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig31",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'41')]",
+              "primary": true,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-31'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig32",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'42')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-32'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig33",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'43')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-33'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig34",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'44')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-34'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig35",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'45')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-35'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig36",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'46')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-36'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig37",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'47')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-37'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig38",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'48')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-38'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig39",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'49')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-39'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig40",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'50')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-40'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig41",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'51')]",
+              "primary": true,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-41'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig42",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'52')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-42'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig43",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'53')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-43'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig44",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'54')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-44'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig45",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'55')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-45'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig46",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'56')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-46'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig47",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'57')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-47'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig48",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'58')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-48'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig49",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'59')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-49'))]"
+              }
+            }
+          },
+          {
+            "name": "ipconfig50",
+            "properties": {
+              "privateIPAllocationMethod": "static",
+              "privateIPAddress": "[concat(parameters('extIpAddress'),'60')]",
+              "primary": false,
+              "subnet": {
+                "id": "[parameters('extSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('publicIPName'),'-50'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[parameters('apiVersionCompute')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('f5NamePrefix'))]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "displayName": "VirtualMachine"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('nicNamePrefix'),'-mgmt')]",
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('nicNamePrefix'),'-int')]",
+        "[concat('Microsoft.Network/networkInterfaces/', parameters('nicNamePrefix'),'-data')]"
+      ],
+      "plan": {
+        "name": "[variables('skuToUse')]",
+        "publisher": "f5-networks",
+        "product": "f5-big-ip-hourly"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets',parameters('availabilitySetName'))]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('instanceType')]"
+        },
+        "osProfile": {
+          "computerName": "[concat(parameters('f5NamePrefix'))]",
+          "adminUsername": "[parameters('adminUsername')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "f5-networks",
+            "offer": "f5-big-ip-hourly",
+            "sku": "[variables('skuToUse')]",
+            "version": "12.1.22"
+          },
+          "osDisk": {
+            "name": "[concat(parameters('f5NamePrefix'),'osdisk')]",
+            "vhd": {
+              "uri": "[concat(concat(reference(resourceId(resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('newStorageAccountName')), parameters('apiVersionStorage')).primaryEndpoints['blob'], 'vhds/'), parameters('f5NamePrefix'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[concat(resourceId('Microsoft.Network/networkInterfaces',parameters('nicNamePrefix')),'-mgmt')]",
+              "properties": {
+                "primary": true
+              }
+            },
+            {
+              "id": "[concat(resourceId('Microsoft.Network/networkInterfaces',parameters('nicNamePrefix')),'-int')]",
+              "properties": {
+                "primary": false
+              }
+            },
+            {
+              "id": "[concat(resourceId('Microsoft.Network/networkInterfaces',parameters('nicNamePrefix')),'-data')]",
+              "properties": {
+                "primary": false
+              }
+            }
+          ]
+        },
+        "diagnosticsProfile": {
+          "bootDiagnostics": {
+            "enabled": true,
+            "storageUri": "[reference(resourceId(resourceGroup().name, 'Microsoft.Storage/storageAccounts', parameters('diagStorageAccountName')), parameters('apiVersionStorage')).primaryEndpoints['blob']]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat(parameters('f5NamePrefix'),'/start')]",
+      "apiVersion": "[parameters('apiVersionCompute')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', concat(parameters('f5NamePrefix')))]"
+      ],
+      "properties": {
+        "publisher": "Microsoft.Azure.Extensions",
+        "type": "CustomScript",
+        "autoUpgradeMinorVersion": true,
+        "typeHandlerVersion": "2.0",
+        "settings": {
+          "fileUris": [
+            "[variables('f5CloudLibsTagUrl')]",
+            "[variables('runScriptsUrl')]"
+          ]
+        },
+        "protectedSettings": {
+          "commandToExecute": "[concat('mkdir /config/cloud && cp f5-cloud-libs.tar.gz* /config/cloud; /usr/bin/install -b -m 755 /dev/null /config/verifyHash; /usr/bin/install -b -m 755 /dev/null /config/installCloudLibs.sh; /usr/bin/install -b -m 400 /dev/null /config/cloud/passwd; IFS=', variables('singleQuote'), '%', variables('singleQuote'), '; echo -e ', variables('verifyHash'), ' >> /config/verifyHash; echo -e ', variables('installCloudLibs'), ' >> /config/installCloudLibs.sh; echo ', variables('singleQuote'), parameters('adminPassword'), variables('singleQuote'), ' >> /config/cloud/passwd; unset IFS; bash /config/installCloudLibs.sh; /usr/bin/f5-rest-node /config/cloud/f5-cloud-libs/scripts/onboard.js --output /var/log/onboard.log --log-level debug --host ', concat(parameters('mgmtIpAddress'),'4'), ' --ssl-port ', '443', ' -u admin --password-url file:///config/cloud/passwd --hostname ', concat(parameters('f5namePrefix'),'.', resourceGroup().location, '.cloudapp.azure.com'),  ' --ntp pool.ntp.org --db tmm.maxremoteloglength:2048 --module ltm:nominal --module afm:none; /usr/bin/f5-rest-node /config/cloud/f5-cloud-libs/scripts/cluster.js --output /var/log/clusterGroup.log --log-level debug --host ', reference(concat(parameters('nicNamePrefix'),'-mgmt')).ipConfigurations[0].properties.privateIpAddress, ' -u admin --password-url file:///config/cloud/mypass --create-group --device-group Sync --sync-type sync-failover --device ', concat(parameters('f5NamePrefix'),'.azure.com'), ' --config-sync-ip ', reference(concat(parameters('nicNamePrefix'),'-int')).ipConfigurations[0].properties.privateIpAddress,' --auto-sync --save-on-auto-sync; f5-rest-node /config/cloud/f5-cloud-libs/scripts/network.js --output /var/log/network.log --host ', concat(parameters('mgmtIpAddress'),'4'), ' --port ', '443', ' -u admin --password-url file:///config/cloud/passwd --multi-nic --default-gw ', variables('defaultGw'), ' --vlan mgmt_vlan,1.0 --vlan internal_vlan,1.1 --vlan external_vlan,1.2 --self-ip mgmt_self,', concat(parameters('mgmtIpAddress'),'4'), ',mgmt_vlan --self-ip internal_self,', concat(parameters('intIpAddress'),'4'), ',internal_vlan --self-ip vip1_self,', concat(parameters('extIpAddress'),'11'), ',external_vlan --self-ip vip2_self,', concat(parameters('extIpAddress'),'12'), ',external_vlan --self-ip vip3_self,', concat(parameters('extIpAddress'),'13'), ',external_vlan --self-ip vip4_self,', concat(parameters('extIpAddress'),'14'), ',external_vlan --self-ip vip5_self,', concat(parameters('extIpAddress'),'15'), ',external_vlan --self-ip vip16_self,', concat(parameters('extIpAddress'),'16'), ',external_vlan --self-ip vip7_self,', concat(parameters('extIpAddress'),'17'), ',external_vlan --self-ip vip8_self,', concat(parameters('extIpAddress'),'18'), ',external_vlan --self-ip vip9_self,', concat(parameters('extIpAddress'),'19'), ',external_vlan --self-ip vip10_self,', concat(parameters('extIpAddress'),'20'), ',external_vlan --self-ip vip11_self,', concat(parameters('extIpAddress'),'21'), ',external_vlan --self-ip vip12_self,', concat(parameters('extIpAddress'),'22'), ',external_vlan --self-ip vip13_self,', concat(parameters('extIpAddress'),'23'), ',external_vlan --self-ip vip14_self,', concat(parameters('extIpAddress'),'24'), ',external_vlan --self-ip vip15_self,', concat(parameters('extIpAddress'),'25'), ',external_vlan --self-ip vip16_self,', concat(parameters('extIpAddress'),'26'), ',external_vlan --self-ip vip17_self,', concat(parameters('extIpAddress'),'27'), ',external_vlan --self-ip vip18_self,', concat(parameters('extIpAddress'),'28'), ',external_vlan --self-ip vip19_self,', concat(parameters('extIpAddress'),'29'), ',external_vlan --self-ip vip20_self,', concat(parameters('extIpAddress'),'30'), ',external_vlan --self-ip vip21_self,', concat(parameters('extIpAddress'),'31'), ',external_vlan --self-ip vip22_self,', concat(parameters('extIpAddress'),'32'), ',external_vlan --self-ip vip23_self,', concat(parameters('extIpAddress'),'33'), ',external_vlan --self-ip vip24_self,', concat(parameters('extIpAddress'),'34'), ',external_vlan --self-ip vip25_self,', concat(parameters('extIpAddress'),'35'), ',external_vlan --self-ip vip26_self,', concat(parameters('extIpAddress'),'36'), ',external_vlan --self-ip vip27_self,', concat(parameters('extIpAddress'),'37'), ',external_vlan --self-ip vip28_self,', concat(parameters('extIpAddress'),'38'), ',external_vlan --self-ip vip29_self,', concat(parameters('extIpAddress'),'39'), ',external_vlan --self-ip vip30_self,', concat(parameters('extIpAddress'),'40'), ',external_vlan --self-ip vip31_self,', concat(parameters('extIpAddress'),'41'), ',external_vlan --self-ip vip32_self,', concat(parameters('extIpAddress'),'42'), ',external_vlan --self-ip vip33_self,', concat(parameters('extIpAddress'),'43'), ',external_vlan --self-ip vip34_self,', concat(parameters('extIpAddress'),'44'), ',external_vlan --self-ip vip35_self,', concat(parameters('extIpAddress'),'45'), ',external_vlan --self-ip vip36_self,', concat(parameters('extIpAddress'),'46'), ',external_vlan --self-ip vip37_self,', concat(parameters('extIpAddress'),'47'), ',external_vlan --self-ip vip38_self,', concat(parameters('extIpAddress'),'48'), ',external_vlan --self-ip vip39_self,', concat(parameters('extIpAddress'),'49'), ',external_vlan --self-ip vip40_self,', concat(parameters('extIpAddress'),'50'), ',external_vlan --self-ip vip41_self,', concat(parameters('extIpAddress'),'51'), ',external_vlan --self-ip vip42_self,', concat(parameters('extIpAddress'),'52'), ',external_vlan --self-ip vip43_self,', concat(parameters('extIpAddress'),'53'), ',external_vlan --self-ip vip44_self,', concat(parameters('extIpAddress'),'54'), ',external_vlan --self-ip vip45_self,', concat(parameters('extIpAddress'),'55'), ',external_vlan --self-ip vip46_self,', concat(parameters('extIpAddress'),'56'), ',external_vlan --self-ip vip47_self,', concat(parameters('extIpAddress'),'57'), ',external_vlan --self-ip vip48_self,', concat(parameters('extIpAddress'),'58'), ',external_vlan --self-ip vip49_self,', concat(parameters('extIpAddress'),'59'), ',external_vlan --self-ip vip50_self,', concat(parameters('extIpAddress'),'60'), ',external_vlan --log-level debug --force-reboot; rm -f /config/cloud/passwd')]"
+        }
+      }
+    }
+  ],
+      "outputs": { }
+    }
